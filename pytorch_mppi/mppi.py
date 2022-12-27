@@ -104,7 +104,7 @@ class MPPI():
                  noise_abs_cost=False):
         """
         :param dynamics: function(state, action) -> next_state (K x nx) taking in batch state (K x nx) and action (K x nu)
-        :param running_cost: function(state, action) -> cost (K) taking in batch state and action (same as dynamics)
+        :param running_cost: function(state, action, new_state) -> cost (K) taking in batch state and action (same as dynamics)
         :param nx: state dimension
         :param noise_sigma: (nu x nu) control noise covariance (assume v_t ~ N(u_t, noise_sigma))
         :param num_samples: K, number of trajectories to sample
@@ -199,9 +199,9 @@ class MPPI():
     def _dynamics(self, state, u, t):
         return self.F(state, u, t) if self.step_dependency else self.F(state, u)
 
-    @handle_batch_input(n=2)
-    def _running_cost(self, state, u):
-        return self.running_cost(state, u)
+    @handle_batch_input(n=3)
+    def _running_cost(self, state, u, new_state):
+        return self.running_cost(state, u, new_state)
 
     def command(self, state):
         """
@@ -258,8 +258,9 @@ class MPPI():
         actions = []
         for t in range(T):
             u = self.u_scale * perturbed_actions[:, t].repeat(self.M, 1, 1)
-            state = self._dynamics(state, u, t)
-            c = self._running_cost(state, u)
+            new_state = self._dynamics(state, u, t)
+            c = self._running_cost(state, u, new_state)
+            state = new_state
             cost_samples += c
             if self.M > 1:
                 cost_var += c.var(dim=0) * (self.rollout_var_discount ** t)
