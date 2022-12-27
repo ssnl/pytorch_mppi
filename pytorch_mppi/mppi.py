@@ -252,7 +252,7 @@ class MPPI():
             state = self.state.view(1, -1).repeat(K, 1)
 
         # rollout action trajectory M times to estimate expected cost
-        state = state.repeat(self.M, 1, 1)
+        state = start_state = state.repeat(self.M, 1, 1)
 
         states = []
         actions = []
@@ -276,7 +276,7 @@ class MPPI():
 
         # action perturbation cost
         if self.terminal_state_cost:
-            c = self.terminal_state_cost(states, actions)
+            c = self.terminal_state_cost(start_state, states, actions)
             cost_samples += c
         cost_total += cost_samples.mean(dim=0)
         cost_total += cost_var * self.rollout_var_cost
